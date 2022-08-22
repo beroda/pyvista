@@ -67,12 +67,6 @@ class PyvistaFutureWarning(Warning):
     pass
 
 
-class PyvistaEfficiencyWarning(Warning):
-    """Efficiency warning."""
-
-    pass
-
-
 def VTKVersionInfo():
     """Return the vtk version as a namedtuple."""
     version_info = namedtuple('VTKVersionInfo', ['major', 'minor', 'micro'])

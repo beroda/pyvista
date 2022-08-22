@@ -28,6 +28,7 @@ mesh = examples.load_channels()
 # define a categorical colormap
 cmap = plt.cm.get_cmap("viridis", 4)
 
+
 mesh.plot(cmap=cmap)
 
 ###############################################################################
@@ -117,7 +118,7 @@ p.show(cpos=[1, -1, 1])
 mesh = examples.download_brain()
 
 # Create vector
-vec = np.array([1.0, 2.0, 1.0])
+vec = np.random.rand(3)
 # Normalize the vector
 normal = vec / np.linalg.norm(vec)
 

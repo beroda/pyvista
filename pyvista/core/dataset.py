@@ -641,27 +641,16 @@ class DataSet(DataSetFilters, DataObject):
             points or cells, it will prioritize an array matching this
             type.  Can be either ``'cell'`` or ``'point'``.
 
-        Returns
-        -------
-        pyvista.FieldAssociation
-            Association of the scalars matching ``name``.
-
-        numpy.ndarray
-            An array from the dataset matching ``name``.
-
         """
         if preference not in ['point', 'cell', FieldAssociation.CELL, FieldAssociation.POINT]:
             raise ValueError('``preference`` must be either "point" or "cell"')
         if name is None:
             self.GetCellData().SetActiveScalars(None)
             self.GetPointData().SetActiveScalars(None)
-            return FieldAssociation.NONE, np.array([])
+            return
         field = get_array_association(self, name, preference=preference)
         if field == FieldAssociation.NONE:
-            if name in self.field_data:
-                raise ValueError(f'Data named "{name}" is a field array which cannot be active.')
-            else:
-                raise KeyError(f'Data named "{name}" does not exist in this dataset.')
+            raise KeyError(f'Data named ({name}) is a field array which cannot be active.')
         self._last_active_scalars_name = self.active_scalars_info.name
         if field == FieldAssociation.POINT:
             ret = self.GetPointData().SetActiveScalars(name)
@@ -672,15 +661,10 @@ class DataSet(DataSetFilters, DataObject):
 
         if ret < 0:
             raise ValueError(
-                f'Data field "{name}" with type ({field}) could not be set as the active scalars'
+                f'Data field ({name}) with type ({field}) could not be set as the active scalars'
             )
 
         self._active_scalars_info = ActiveArrayInfo(field, name)
-
-        if field == FieldAssociation.POINT:
-            return field, self.point_data.active_scalars
-        else:  # must be cell
-            return field, self.cell_data.active_scalars
 
     def set_active_vectors(self, name: Optional[str], preference='point'):
         """Find the vectors by name and appropriately sets it as active.
