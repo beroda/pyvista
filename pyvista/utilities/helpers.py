@@ -1673,3 +1673,16 @@ def set_default_active_scalars(mesh: 'pyvista.DataSet') -> None:
             f"point data: {possible_scalars_point}.\n"
             "Set one as active using DataSet.set_active_scalars(name, preference=type)"
         )
+
+
+def algorithm_to_mesh_handler(mesh_or_algo):
+    """Handle vtkAlgorithms where mesh objects are expected."""
+    algo = None
+    if isinstance(mesh_or_algo, _vtk.vtkAlgorithm):
+        algo = mesh_or_algo
+        algo.Update()
+        mesh_or_algo = wrap(algo.GetOutput())
+    # commenting out to silently fail as some methods support numpy arrays
+    # elif not isinstance(mesh_or_algo, _vtk.vtkDataObject):
+    #     raise TypeError('The passed object is not a VTK data object or algorithm.')
+    return mesh_or_algo, algo

@@ -22,6 +22,7 @@ from pyvista import _vtk
 from pyvista.utilities import (
     FieldAssociation,
     abstract_class,
+    algorithm_to_mesh_handler,
     assert_empty_kwargs,
     convert_array,
     get_array,
@@ -2489,7 +2490,7 @@ class BasePlotter(PickingHelper, WidgetHelper):
 
         Parameters
         ----------
-        mesh : pyvista.DataSet or pyvista.MultiBlock
+        mesh : pyvista.DataSet or pyvista.MultiBlock or vtk.vtkAlgorithm
             Any PyVista or VTK mesh is supported. Also, any dataset
             that :func:`pyvista.wrap` can handle including NumPy
             arrays of XYZ points.
@@ -2825,6 +2826,8 @@ class BasePlotter(PickingHelper, WidgetHelper):
         """
         self.mapper = make_mapper(_vtk.vtkDataSetMapper)
 
+        mesh, algo = algorithm_to_mesh_handler(mesh)
+
         # Convert the VTK data object to a pyvista wrapped object if necessary
         if not is_pyvista_dataset(mesh):
             mesh = wrap(mesh)
@@ -2834,8 +2837,16 @@ class BasePlotter(PickingHelper, WidgetHelper):
                 )
         elif isinstance(mesh, pyvista.PointSet):
             # cast to PointSet to PolyData
+            if algo is not None:
+                raise TypeError(
+                    'Algorithms with `vtkPointSet` output type are not fully supported by `add_mesh` at this time.'
+                )
             mesh = mesh.cast_to_polydata(deep=False)
         elif isinstance(mesh, pyvista.MultiBlock):
+            if algo is not None:
+                raise TypeError(
+                    'Algorithms with `MultiBlock` output type are not fully supported by `add_mesh` at this time. Please open an issue.'
+                )
             return self.add_composite(
                 mesh,
                 color=color,
@@ -2927,6 +2938,7 @@ class BasePlotter(PickingHelper, WidgetHelper):
             **kwargs,
         )
         if silhouette:
+            # TODO: add algorithm support to add_silhouette
             if isinstance(silhouette, dict):
                 self.add_silhouette(mesh, silhouette)
             else:
@@ -2976,6 +2988,10 @@ class BasePlotter(PickingHelper, WidgetHelper):
 
         # Compute surface normals if using smooth shading
         if smooth_shading:
+            if algo is not None:
+                raise TypeError(
+                    'Smooth shading is not currently supported when a vtkAlgorithm is passed.'
+                )
             mesh, scalars = prepare_smooth_shading(
                 mesh, scalars, texture, split_sharp_edges, feature_angle, preference
             )
@@ -2985,7 +3001,10 @@ class BasePlotter(PickingHelper, WidgetHelper):
 
         # set main values
         self.mesh = mesh
-        self.mapper.SetInputData(self.mesh)
+        if algo is not None:
+            self.mapper.SetInputConnection(algo.GetOutputPort())
+        else:
+            self.mapper.SetInputData(mesh)
         self.mapper.GetLookupTable().SetNumberOfTableValues(n_colors)
         if interpolate_before_map:
             self.mapper.InterpolateScalarsBeforeMappingOn()
@@ -3610,7 +3629,7 @@ class BasePlotter(PickingHelper, WidgetHelper):
 
         Parameters
         ----------
-        mesh : pyvista.PolyData
+        mesh : pyvista.PolyData or vtk.vtkAlgorithm
             Mesh for generating silhouette to plot.
 
         params : dict, optional
@@ -3645,17 +3664,23 @@ class BasePlotter(PickingHelper, WidgetHelper):
         if params:
             silhouette_params.update(params)
 
+        mesh, algo = algorithm_to_mesh_handler(mesh)
         if not is_pyvista_dataset(mesh):
             mesh = wrap(mesh)
         if not isinstance(mesh, pyvista.PolyData):
             raise TypeError(f"Expected type is `PolyData` but {type(mesh)} was given.")
 
         if isinstance(silhouette_params["decimate"], float):
+            if algo is not None:
+                raise TypeError('Cannot decimate when an algorithm is passed at this time.')
             silhouette_mesh = mesh.decimate(silhouette_params["decimate"])
         else:
             silhouette_mesh = mesh
         alg = _vtk.vtkPolyDataSilhouette()
-        alg.SetInputData(silhouette_mesh)
+        if algo is not None:
+            alg.SetInputConnection(algo.GetOutputPort())
+        else:
+            alg.SetInputData(silhouette_mesh)
         alg.SetCamera(self.renderer.camera)
         if silhouette_params["feature_angle"] is not None:
             alg.SetEnableFeatureAngle(True)

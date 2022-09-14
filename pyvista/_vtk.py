@@ -231,7 +231,7 @@ if VTK9:
     except ImportError:  # pragma: no cover
         pass
 
-    from vtkmodules.vtkCommonExecutionModel import vtkImageToStructuredGrid
+    from vtkmodules.vtkCommonExecutionModel import vtkAlgorithm, vtkImageToStructuredGrid
     from vtkmodules.vtkCommonMath import vtkMatrix3x3, vtkMatrix4x4
     from vtkmodules.vtkCommonTransforms import vtkTransform
     from vtkmodules.vtkFiltersCore import (
