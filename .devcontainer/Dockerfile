@@ -7,8 +7,8 @@ FROM mcr.microsoft.com/vscode/devcontainers/python:0-${VARIANT}
 RUN sudo apt-get update \
   && sudo apt-get install  -yq --no-install-recommends libxrender1
 
-#RUN echo "[ ! -d /workspace/pv-venv ] && python -m venv /workspace/pv-venv" >> $HOME/.bashrc
-#RUN echo "source /workspace/pv-venv/bin/activate" >> $HOME/.bashrc
+RUN echo "[ ! -d /workspace/pv-venv ] && python -m venv /workspace/pv-venv" >> $HOME/.bashrc
+RUN echo "source /workspace/pv-venv/bin/activate" >> $HOME/.bashrc
 
-#ENV PYVISTA_OFF_SCREEN=false
-#ENV PRE_COMMIT_HOME=/workspace/.precommit
+ENV PYVISTA_OFF_SCREEN=false
+ENV PRE_COMMIT_HOME=/workspace/.precommit
