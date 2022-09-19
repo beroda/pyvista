@@ -40,10 +40,10 @@
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	 "forwardPorts": [6080],
 
-	"onCreateCommand": "./.devcontainer/init_script.sh",
+	// "postCreateCommand": "./.devcontainer/init_script.sh",
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	// "postCreateCommand": "pip3 install --user -r requirements.txt",
+	"postCreateCommand": "./.devcontainer/init_script.sh",
 
 	// Comment out connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
 	"remoteUser": "vscode",
