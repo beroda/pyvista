@@ -12,6 +12,7 @@ from pyvista.utilities import (
     convert_array,
     convert_string_array,
     raise_not_matching,
+    wrap,
 )
 from pyvista.utilities.misc import has_module
 
@@ -317,7 +318,7 @@ class DataSetMapper(_vtk.vtkDataSetMapper, _BaseMapper):
     @property
     def dataset(self) -> Optional['pv.DataSet']:
         """Return or set the dataset assigned to this mapper."""
-        return self.GetInputAsDataSet()
+        return wrap(self.GetInputAsDataSet())
 
     @dataset.setter
     def dataset(self, obj: 'pv.core.dataset.DataSet'):

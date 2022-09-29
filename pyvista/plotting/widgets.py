@@ -1334,6 +1334,8 @@ class WidgetHelper:
         # avoid circular import
         from ..core.filters.data_set import _set_threshold_limit
 
+        mesh, algo = algorithm_to_mesh_handler(mesh)
+
         if isinstance(mesh, pyvista.MultiBlock):
             raise TypeError('MultiBlock datasets are not supported for threshold widget.')
         name = kwargs.get('name', mesh.memory_address)
@@ -1350,10 +1352,17 @@ class WidgetHelper:
             title = scalars
         mesh.set_active_scalars(scalars)
 
-        self.add_mesh(mesh.outline(), name=f"{name}-outline", opacity=0.0)
+        if algo is not None:
+            outline = _outline_algorithm(algo)
+        else:
+            outline = mesh.outline()
+        self.add_mesh(outline, name=f"{name}-outline", opacity=0.0)
 
         alg = _vtk.vtkThreshold()
-        alg.SetInputDataObject(mesh)
+        if algo is not None:
+            alg.SetInputConnection(algo.GetOutputPort())
+        else:
+            alg.SetInputDataObject(mesh)
         alg.SetInputArrayToProcess(
             0, 0, 0, field.value, scalars
         )  # args: (idx, port, connection, field, name)
@@ -1377,7 +1386,7 @@ class WidgetHelper:
         )
 
         kwargs.setdefault("reset_camera", False)
-        return self.add_mesh(threshold_mesh, scalars=scalars, **kwargs)
+        return self.add_mesh(alg, scalars=scalars, **kwargs)
 
     def add_mesh_isovalue(
         self,
@@ -1463,6 +1472,7 @@ class WidgetHelper:
             VTK actor of the mesh.
 
         """
+        mesh, algo = algorithm_to_mesh_handler(mesh)
         if isinstance(mesh, pyvista.MultiBlock):
             raise TypeError('MultiBlock datasets are not supported for this widget.')
         name = kwargs.get('name', mesh.memory_address)
@@ -1486,14 +1496,21 @@ class WidgetHelper:
         mesh.set_active_scalars(scalars)
 
         alg = _vtk.vtkContourFilter()
-        alg.SetInputDataObject(mesh)
+        if algo is not None:
+            alg.SetInputConnection(algo.GetOutputPort())
+        else:
+            alg.SetInputDataObject(mesh)
         alg.SetComputeNormals(compute_normals)
         alg.SetComputeGradients(compute_gradients)
         alg.SetComputeScalars(compute_scalars)
         alg.SetInputArrayToProcess(0, 0, 0, field.value, scalars)
         alg.SetNumberOfContours(1)  # Only one contour level
 
-        self.add_mesh(mesh.outline(), name=f"{name}-outline", opacity=0.0)
+        if algo is not None:
+            outline = _outline_algorithm(algo)
+        else:
+            outline = mesh.outline()
+        self.add_mesh(outline, name=f"{name}-outline", opacity=0.0)
 
         isovalue_mesh = pyvista.wrap(alg.GetOutput())
         self.isovalue_meshes.append(isovalue_mesh)
@@ -1513,7 +1530,7 @@ class WidgetHelper:
         )
 
         kwargs.setdefault("reset_camera", False)
-        return self.add_mesh(isovalue_mesh, scalars=scalars, **kwargs)
+        return self.add_mesh(alg, scalars=scalars, **kwargs)
 
     def add_spline_widget(
         self,
@@ -1729,6 +1746,7 @@ class WidgetHelper:
             VTK actor of the mesh.
 
         """
+        mesh, algo = algorithm_to_mesh_handler(mesh)
         name = kwargs.get('name', None)
         if name is None:
             name = mesh.memory_address
@@ -1736,10 +1754,18 @@ class WidgetHelper:
         kwargs.setdefault('clim', kwargs.pop('rng', rng))
         mesh.set_active_scalars(kwargs.get('scalars', mesh.active_scalars_name))
 
-        self.add_mesh(mesh.outline(), name=f"{name}-outline", opacity=0.0)
+        if algo is not None:
+            outline = _outline_algorithm(algo)
+        else:
+            outline = mesh.outline()
+        self.add_mesh(outline, name=f"{name}-outline", opacity=0.0)
 
         alg = _vtk.vtkCutter()  # Construct the cutter object
-        alg.SetInputDataObject(mesh)  # Use the grid as the data we desire to cut
+        # Use the grid as the data we desire to cut
+        if algo is not None:
+            alg.SetInputConnection(algo.GetOutputPort())
+        else:
+            alg.SetInputDataObject(mesh)
         if not generate_triangles:
             alg.GenerateTrianglesOff()
 
@@ -1770,7 +1796,7 @@ class WidgetHelper:
             interaction_event=interaction_event,
         )
 
-        return self.add_mesh(spline_sliced_mesh, **kwargs)
+        return self.add_mesh(alg, **kwargs)
 
     def add_sphere_widget(
         self,
