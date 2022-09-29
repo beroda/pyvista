@@ -2948,3 +2948,22 @@ def test_wireframe_color(sphere):
     sphere.plot(
         lighting=False, color='b', style='wireframe', before_close_callback=verify_cache_image
     )
+
+
+def test_plot_algorithm_simple():
+    algo = vtk.vtkConeSource()
+    algo.SetResolution(10)
+
+    pl = pyvista.Plotter()
+    pl.add_mesh(algo, color='red')
+    pl.show(before_close_callback=verify_cache_image, auto_close=False)
+    algo.SetResolution(3)
+    pl.show(before_close_callback=verify_cache_image)
+
+
+def test_plot_algorithm_scalars():
+    algo = vtk.vtkRTAnalyticSource()
+
+    pl = pyvista.Plotter()
+    pl.add_mesh(algo)
+    pl.show(before_close_callback=verify_cache_image)
