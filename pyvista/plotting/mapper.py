@@ -26,17 +26,15 @@ class _BaseMapper(_vtk.vtkAbstractMapper):
 
     _theme = None
 
-    def __init__(self, theme, **kwargs):
+    def __init__(self, theme=None, **kwargs):
         self._theme = theme
         self.lookup_table = LookupTable()
 
-    def copy(self):
-        """Create a deep of this mapper.
+    def copy(self) -> '_BaseMapper':
+        """Create a copy of this mapper.
 
         Examples
         --------
-        Create a copy of a :class:`pyvista.DataSetMapper`.
-
         >>> import pyvista as pv
         >>> mapper = pv.DataSetMapper(dataset=pv.Cube())
         >>> mapper_copy = mapper.copy()
@@ -339,7 +337,7 @@ class DataSetMapper(_vtk.vtkDataSetMapper, _BaseMapper):
         theme: Optional['pv.themes.DefaultTheme'] = None,
     ):
         """Initialize this class."""
-        super().__init__(theme)
+        super().__init__(theme=theme)
         if dataset is not None:
             self.dataset = dataset
 
@@ -474,7 +472,7 @@ class DataSetMapper(_vtk.vtkDataSetMapper, _BaseMapper):
             than zero are mapped to the smallest representable
             positive float.
 
-        nan_color : color_like
+        nan_color : color_like, optional
             The color to use for all ``NaN`` values in the plotted
             scalar array.
 
@@ -749,7 +747,7 @@ class _BaseVolumeMapper(_BaseMapper):
 
     def __init__(self, theme=None):
         """Initialize this class."""
-        super().__init__(theme)
+        super().__init__(theme=theme)
         self._lut = LookupTable()
         self._scalar_range = None
 
@@ -788,30 +786,22 @@ class _BaseVolumeMapper(_BaseMapper):
 class FixedPointVolumeRayCastMapper(_vtk.vtkFixedPointVolumeRayCastMapper, _BaseVolumeMapper):
     """Wrap _vtk.vtkFixedPointVolumeRayCastMapper."""
 
-    def __init__(self, theme=None):
-        """Initialize this class."""
-        super().__init__(theme)
+    pass
 
 
 class GPUVolumeRayCastMapper(_vtk.vtkGPUVolumeRayCastMapper, _BaseVolumeMapper):
     """Wrap _vtk.vtkGPUVolumeRayCastMapper."""
 
-    def __init__(self, theme=None):
-        """Initialize this class."""
-        super().__init__(theme)
+    pass
 
 
 class OpenGLGPUVolumeRayCastMapper(_vtk.vtkOpenGLGPUVolumeRayCastMapper, _BaseVolumeMapper):
     """Wrap _vtk.vtkOpenGLGPUVolumeRayCastMapper."""
 
-    def __init__(self, theme=None):
-        """Initialize this class."""
-        super().__init__(theme)
+    pass
 
 
 class SmartVolumeMapper(_vtk.vtkSmartVolumeMapper, _BaseVolumeMapper):
     """Wrap _vtk.vtkSmartVolumeMapper."""
 
-    def __init__(self, theme=None):
-        """Initialize this class."""
-        super().__init__(theme)
+    pass
