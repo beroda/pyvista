@@ -53,6 +53,7 @@ from .mapper import (
     FixedPointVolumeRayCastMapper,
     GPUVolumeRayCastMapper,
     OpenGLGPUVolumeRayCastMapper,
+    PointGaussianMapper,
     SmartVolumeMapper,
 )
 from .picking import PickingHelper
@@ -1835,7 +1836,7 @@ class BasePlotter(PickingHelper, WidgetHelper):
         self.iren.enable_rubber_band_2d_style()
 
     def enable_stereo_render(self):
-        """Enable stereo rendering.
+        """Enable anaglyph stereo rendering.
 
         Disable this with :func:`disable_stereo_render
         <BasePlotter.disable_stereo_render>`
@@ -1852,11 +1853,11 @@ class BasePlotter(PickingHelper, WidgetHelper):
 
         """
         if hasattr(self, 'ren_win'):
-            self.ren_win.StereoRenderOn()
             self.ren_win.SetStereoTypeToAnaglyph()
+            self.ren_win.StereoRenderOn()
 
     def disable_stereo_render(self):
-        """Disable stereo rendering.
+        """Disable anaglyph stereo rendering.
 
         Enable again with :func:`enable_stereo_render
         <BasePlotter.enable_stereo_render>`
@@ -2326,6 +2327,7 @@ class BasePlotter(PickingHelper, WidgetHelper):
             color,
             None,
             rgb,
+            style,
             **kwargs,
         )
 
@@ -2488,6 +2490,7 @@ class BasePlotter(PickingHelper, WidgetHelper):
         roughness=0.5,
         render=True,
         component=None,
+        emissive=False,
         copy_mesh=False,
         backface_params=None,
         **kwargs,
@@ -2520,9 +2523,11 @@ class BasePlotter(PickingHelper, WidgetHelper):
 
         style : str, optional
             Visualization style of the mesh.  One of the following:
-            ``style='surface'``, ``style='wireframe'``, ``style='points'``.
-            Defaults to ``'surface'``. Note that ``'wireframe'`` only shows a
-            wireframe of the outer geometry.
+            ``style='surface'``, ``style='wireframe'``, ``style='points'``,
+            ``style='points_gaussian'``. Defaults to ``'surface'``. Note that
+            ``'wireframe'`` only shows a wireframe of the outer geometry.
+            ``'points_gaussian'`` can be modified with the ``emissive``,
+            ``render_points_as_spheres`` options.
 
         scalars : str or numpy.ndarray, optional
             Scalars used to "color" the mesh.  Accepts a string name
@@ -2769,10 +2774,14 @@ class BasePlotter(PickingHelper, WidgetHelper):
         render : bool, optional
             Force a render when ``True``.  Default ``True``.
 
-        component :  int, optional
+        component : int, optional
             Set component of vector valued scalars to plot.  Must be
             nonnegative, if supplied. If ``None``, the magnitude of
             the vector is plotted.
+
+        emissive : bool, default: False
+            Treat the points/splats as emissive light sources. Only valid for
+            ``style='points_gaussian'`` representation.
 
         copy_mesh : bool, optional
             If ``True``, a copy of the mesh will be made before adding it to
@@ -2808,10 +2817,10 @@ class BasePlotter(PickingHelper, WidgetHelper):
         Add a sphere to the plotter and show it with a custom scalar
         bar title.
 
-        >>> import pyvista
-        >>> sphere = pyvista.Sphere()
+        >>> import pyvista as pv
+        >>> sphere = pv.Sphere()
         >>> sphere['Data'] = sphere.points[:, 2]
-        >>> plotter = pyvista.Plotter()
+        >>> plotter = pv.Plotter()
         >>> _ = plotter.add_mesh(sphere,
         ...                      scalar_bar_args={'title': 'Z Position'})
         >>> plotter.show()
@@ -2820,16 +2829,16 @@ class BasePlotter(PickingHelper, WidgetHelper):
         points and the number of cells are identical, we have to pass
         ``preference='cell'``.
 
-        >>> import pyvista
+        >>> import pyvista as pv
         >>> import numpy as np
         >>> vertices = np.array([[0, 0, 0], [1, 0, 0], [.5, .667, 0], [0.5, .33, 0.667]])
         >>> faces = np.hstack([[3, 0, 1, 2], [3, 0, 3, 2], [3, 0, 1, 3], [3, 1, 2, 3]])
-        >>> mesh = pyvista.PolyData(vertices, faces)
+        >>> mesh = pv.PolyData(vertices, faces)
         >>> mesh.cell_data['colors'] = [[255, 255, 255],
         ...                               [0, 255, 0],
         ...                               [0, 0, 255],
         ...                               [255, 0, 0]]
-        >>> plotter = pyvista.Plotter()
+        >>> plotter = pv.Plotter()
         >>> _ = plotter.add_mesh(mesh, scalars='colors', lighting=False,
         ...                      rgb=True, preference='cell')
         >>> plotter.camera_position='xy'
@@ -2840,7 +2849,7 @@ class BasePlotter(PickingHelper, WidgetHelper):
         in ``preference=='point'``, each cell face is individually
         colored.
 
-        >>> plotter = pyvista.Plotter()
+        >>> plotter = pv.Plotter()
         >>> _ = plotter.add_mesh(mesh, scalars='colors', lighting=False,
         ...                      rgb=True, preference='point')
         >>> plotter.camera_position='xy'
@@ -2848,12 +2857,28 @@ class BasePlotter(PickingHelper, WidgetHelper):
 
         Plot a plane with a constant color and vary its opacity by point.
 
-        >>> plane = pyvista.Plane()
+        >>> plane = pv.Plane()
         >>> plane.plot(color='b', opacity=np.linspace(0, 1, plane.n_points),
         ...            show_edges=True)
 
+        Plot the points of a sphere with gaussian smoothing while coloring by z
+        position.
+
+        >>> mesh = pv.Sphere()
+        >>> mesh.plot(
+        ...     scalars=mesh.points[:, 2],
+        ...     style='points_gaussian',
+        ...     opacity=0.5,
+        ...     point_size=10,
+        ...     render_points_as_spheres=False,
+        ...     show_scalar_bar=False,
+        ... )
+
         """
-        self.mapper = DataSetMapper(theme=self.theme)
+        if style == 'points_gaussian':
+            self.mapper = PointGaussianMapper(theme=self.theme)
+        else:
+            self.mapper = DataSetMapper(theme=self.theme)
 
         mesh, algo = algorithm_to_mesh_handler(mesh)
 
@@ -2964,6 +2989,7 @@ class BasePlotter(PickingHelper, WidgetHelper):
             color,
             texture,
             rgb,
+            style,
             **kwargs,
         )
 
@@ -3122,18 +3148,32 @@ class BasePlotter(PickingHelper, WidgetHelper):
             specular_power=specular_power,
             show_edges=show_edges,
             color=color,
-            style=style,
+            style=style if style != 'points_gaussian' else 'points',
             edge_color=edge_color,
-            render_points_as_spheres=render_points_as_spheres,
             render_lines_as_tubes=render_lines_as_tubes,
             lighting=lighting,
             line_width=line_width,
             culling=culling,
         )
+
+        if style == 'points_gaussian':
+            self.mapper.emissive = emissive
+            self.mapper.scale_factor = point_size * self.mapper.dataset.length / 1300
+            if not render_points_as_spheres and not emissive:
+                if opacity >= 1.0:
+                    opacity = 0.9999  # otherwise, weird triangles
+
         if isinstance(opacity, (float, int)):
             prop_kwargs['opacity'] = opacity
         prop = Property(**prop_kwargs)
         actor.SetProperty(prop)
+
+        if render_points_as_spheres:
+            if style == 'points_gaussian':
+                self.mapper.use_circular_splat(opacity)
+                prop.opacity = 1.0
+            else:
+                prop.render_points_as_spheres = render_points_as_spheres
 
         if backface_params is not None:
             if isinstance(backface_params, Property):
@@ -4790,13 +4830,19 @@ class BasePlotter(PickingHelper, WidgetHelper):
         labels = [phrase % val for val in scalars]
         return self.add_point_labels(points, labels, **kwargs)
 
-    def add_points(self, points, **kwargs):
+    def add_points(self, points, style='points', **kwargs):
         """Add points to a mesh.
 
         Parameters
         ----------
         points : numpy.ndarray or pyvista.DataSet
             Array of points or the points from a pyvista object.
+
+        style : str, default: 'points'
+            Visualization style of the mesh.  One of the following:
+            ``style='points'``, ``style='points_gaussian'``.
+            ``'points_gaussian'`` can be controlled with the ``emissive`` and
+            ``render_points_as_spheres`` options.
 
         **kwargs : dict, optional
             See :func:`pyvista.BasePlotter.add_mesh` for optional
@@ -4819,9 +4865,20 @@ class BasePlotter(PickingHelper, WidgetHelper):
         ...                       point_size=100.0)
         >>> pl.show()
 
+        Plot using the ``'points_gaussian'`` style
+
+        >>> points = np.random.random((10, 3))
+        >>> pl = pyvista.Plotter()
+        >>> actor = pl.add_points(points, style='points_gaussian')
+        >>> pl.show()
+
         """
-        kwargs['style'] = 'points'
-        return self.add_mesh(points, **kwargs)
+        if style not in ['points', 'points_gaussian']:
+            raise ValueError(
+                f'Invalid style {style} for add_points. Should be either "points" or '
+                '"points_gaussian".'
+            )
+        return self.add_mesh(points, style=style, **kwargs)
 
     def add_arrows(self, cent, direction, mag=1, **kwargs):
         """Add arrows to the plotter.
@@ -5148,7 +5205,8 @@ class BasePlotter(PickingHelper, WidgetHelper):
             The point of focus the camera.
 
         step : float, optional
-            The timestep between flying to each camera position.
+            The timestep between flying to each camera position. Ignored when
+            the plotter run "off screen".
 
         viewup : list(float), optional
             The normal to the orbital plane.
@@ -5224,7 +5282,7 @@ class BasePlotter(PickingHelper, WidgetHelper):
                 else:
                     self.render()
                 sleep_time = step - (time.time() - tstart)
-                if sleep_time > 0:
+                if sleep_time > 0 and not self.off_screen:
                     time.sleep(sleep_time)
             if write_frames:
                 self.mwriter.close()
@@ -5878,6 +5936,7 @@ class Plotter(BasePlotter):
         jupyter_backend=None,
         return_viewer=False,
         return_cpos=None,
+        before_close_callback=None,
         **kwargs,
     ):
         """Display the plotting window.
@@ -5956,6 +6015,15 @@ class Plotter(BasePlotter):
             when enabled.  Default based on theme setting.  See
             :attr:`pyvista.themes.DefaultTheme.return_cpos`.
 
+        before_close_callback : Callable, optional
+            Callback that is called before the plotter is closed.
+            The function takes a single parameter, which is the plotter object
+            before it closes. An example of use is to capture a screenshot after
+            interaction::
+
+                def fun(plotter):
+                    plotter.screenshot('file.png')
+
         **kwargs : dict, optional
             Developer keyword arguments.
 
@@ -6024,10 +6092,12 @@ class Plotter(BasePlotter):
         (-0.6839951597283509, -0.47207319712073137, 0.5561452310578585)]
 
         """
-        # developer keyword argument: runs a function immediately prior to ``close``
-        self._before_close_callback = kwargs.pop('before_close_callback', None)
         jupyter_kwargs = kwargs.pop('jupyter_kwargs', {})
         assert_empty_kwargs(**kwargs)
+
+        if before_close_callback is None:
+            before_close_callback = pyvista.global_theme._before_close_callback
+        self._before_close_callback = before_close_callback
 
         if interactive_update and auto_close is None:
             auto_close = False
