@@ -4480,7 +4480,7 @@ class BasePlotter(PickingHelper, WidgetHelper):
 
         Parameters
         ----------
-        lines : np.ndarray or pyvista.PolyData
+        lines : np.ndarray
             Points representing line segments.  For example, two line
             segments would be represented as ``np.array([[0, 0, 0],
             [1, 0, 0], [1, 0, 0], [1, 1, 0]])``.
