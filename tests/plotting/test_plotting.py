@@ -3141,7 +3141,7 @@ def test_plot_algorithm_simple():
 
     pl = pyvista.Plotter()
     pl.add_mesh(algo, color='red')
-    pl.show(before_close_callback=verify_cache_image, auto_close=False)
+    pl.show(auto_close=False)
     algo.SetResolution(3)
     pl.show()
 
