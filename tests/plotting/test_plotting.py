@@ -3134,6 +3134,7 @@ def test_add_point_scalar_labels_list():
     plotter.add_point_scalar_labels(points, labels)
     plotter.show()
 
+
 def test_plot_algorithm_simple():
     algo = vtk.vtkConeSource()
     algo.SetResolution(10)
