@@ -4731,7 +4731,7 @@ class BasePlotter(PickingHelper, WidgetHelper):
         else:
             # Make sure PointData
             if labels not in points.point_data:
-                raise ValueError('There must be one label for each point')
+                raise ValueError(f'`{labels}` not found in point data.')
             hier.SetLabelArrayName(labels)
 
         if always_visible:
