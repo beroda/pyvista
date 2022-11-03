@@ -246,6 +246,10 @@ class WidgetHelper:
         port = 1 if invert else 0
 
         if crinkle:
+            if algo is not None:
+                raise ValueError(
+                    'Crinkle clipping is not currently supported with vtkAlgorithm inputs.'
+                )
             mesh.cell_data['cell_ids'] = np.arange(mesh.n_cells)
 
         alg = _vtk.vtkBoxClipDataSet()
@@ -602,7 +606,10 @@ class WidgetHelper:
         self.add_mesh(outline, name=f"{name}-outline", opacity=0.0)
 
         if crinkle:
-            # TODO: this could break in an algorithm set up if a new object is generated
+            if algo is not None:
+                raise ValueError(
+                    'Crinkle clipping is not currently supported with vtkAlgorithm inputs.'
+                )
             mesh.cell_data['cell_ids'] = np.arange(0, mesh.n_cells, dtype=int)
 
         if isinstance(mesh, _vtk.vtkPolyData):
@@ -628,7 +635,6 @@ class WidgetHelper:
             alg.Update()  # Perform the Cut
             clipped = pyvista.wrap(alg.GetOutput())
             if crinkle:
-                # TODO: see note above
                 clipped = mesh.extract_cells(np.unique(clipped.cell_data['cell_ids']))
             plane_clipped_mesh.shallow_copy(clipped)
 

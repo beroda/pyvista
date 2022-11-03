@@ -2993,7 +2993,6 @@ class BasePlotter(PickingHelper, WidgetHelper):
         )
 
         if silhouette:
-            # TODO: add algorithm support to add_silhouette
             if isinstance(silhouette, dict):
                 self.add_silhouette(mesh, silhouette)
             else:
