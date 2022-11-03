@@ -2,7 +2,7 @@
 Plotting with VTK Algorithms
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Pass a ``vtkAlgorithm`` to the ``Plotter`` for interactive visualizations.
+Pass a ``vtkAlgorithm`` to the ``Plotter`` for dynamic visualizations.
 
 A ``vtkAlgorithm`` is the superclass for all sources, filters, and sinks
 in VTK. It defines a generalized interface for executing data processing algorithms. Pipeline connections are associated with input and output
