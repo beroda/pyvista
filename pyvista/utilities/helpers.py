@@ -1681,11 +1681,13 @@ def set_default_active_scalars(mesh: 'pyvista.DataSet') -> None:
 
 def algorithm_to_mesh_handler(mesh_or_algo):
     """Handle vtkAlgorithms where mesh objects are expected."""
+    from pyvista.core.filters import _get_output
+
     algo = None
     if isinstance(mesh_or_algo, _vtk.vtkAlgorithm):
         algo = mesh_or_algo
         algo.Update()
-        mesh_or_algo = wrap(algo.GetOutput())
+        mesh_or_algo = _get_output(algo)
     # commenting out to silently fail as some methods support numpy arrays
     # elif not isinstance(mesh_or_algo, _vtk.vtkDataObject):
     #     raise TypeError('The passed object is not a VTK data object or algorithm.')
