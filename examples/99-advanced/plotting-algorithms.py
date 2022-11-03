@@ -15,12 +15,13 @@ pipeline when adding data to the scene through methods like ``add_mesh``.
 This example will walk through using some ``vtkAlgorithm``'s directly and
 passing them to PyVista for dynamic visualization.
 """
-import pyvista as pv
-from pyvista import examples
 import vtk
 
+import pyvista as pv
+from pyvista import examples
+
 ###############################################################################
-# Use ``vtkConeSource`` as a source algoritm. This source will dynamically
+# Use ``vtkConeSource`` as a source algorithm. This source will dynamically
 # create a cone object depending on the class's parameters. In this example,
 # we will connect a callback to set the cone source algorithm's resolution
 # via ``vtkConeSource.SetResolution``
