@@ -353,7 +353,10 @@ class DataSetMapper(_vtk.vtkDataSetMapper, _BaseMapper):
 
     @dataset.setter
     def dataset(self, obj: 'pv.core.dataset.DataSet'):
-        return self.SetInputData(obj)
+        if isinstance(obj, _vtk.vtkAlgorithm):
+            return self.SetInputConnection(obj.GetOutputPort())
+        else:
+            return self.SetInputData(obj)
 
     def as_rgba(self):
         """Convert the active scalars to RGBA.
