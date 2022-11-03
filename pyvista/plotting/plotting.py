@@ -4701,36 +4701,52 @@ class BasePlotter(PickingHelper, WidgetHelper):
             points = np.array(points)
 
         if isinstance(points, np.ndarray):
-            vtkpoints = pyvista.PolyData(points)  # Cast to poly data
-        elif is_pyvista_dataset(points):
-            vtkpoints = pyvista.PolyData(points.points)
-            if isinstance(labels, str):
-                labels = points.point_data[labels]
-        else:
+            points = pyvista.PolyData(points)  # Cast to poly data
+        elif not is_pyvista_dataset(points) and not isinstance(points, _vtk.vtkAlgorithm):
             raise TypeError(f'Points type not usable: {type(points)}')
-
-        if len(vtkpoints.points) != len(labels):
-            raise ValueError('There must be one label for each point')
+        points, algo = algorithm_to_mesh_handler(points)
+        if algo is not None:
+            # Extract points filter
+            pc_algo = _vtk.vtkConvertToPointCloud()
+            pc_algo.SetInputConnection(algo.GetOutputPort())
+            algo = pc_algo
 
         if name is None:
-            name = f'{type(vtkpoints).__name__}({vtkpoints.memory_address})'
+            name = f'{type(points).__name__}({points.memory_address})'
 
-        vtklabels = _vtk.vtkStringArray()
-        vtklabels.SetName('labels')
-        for item in labels:
-            vtklabels.InsertNextValue(str(item))
-        vtkpoints.GetPointData().AddArray(vtklabels)
-
-        # Create hierarchy
         hier = _vtk.vtkPointSetToLabelHierarchy()
-        hier.SetLabelArrayName('labels')
+        if not isinstance(labels, str):
+            if algo is not None:
+                raise TypeError(
+                    'If using a vtkAlgorithm input, the labels must be a named array on the dataset.'
+                )
+            points = pyvista.PolyData(points.points)
+            if len(points.points) != len(labels):
+                raise ValueError('There must be one label for each point')
+            vtklabels = _vtk.vtkStringArray()
+            vtklabels.SetName('labels')
+            for item in labels:
+                vtklabels.InsertNextValue(str(item))
+            points.GetPointData().AddArray(vtklabels)
+            hier.SetLabelArrayName('labels')
+        else:
+            # Make sure PointData
+            if labels not in points.point_data:
+                raise ValueError('There must be one label for each point')
+            hier.SetLabelArrayName(labels)
 
         if always_visible:
-            hier.SetInputData(vtkpoints)
+            if algo is not None:
+                hier.SetInputConnection(algo.GetOutputPort())
+            else:
+                hier.SetInputData(points)
         else:
             # Only show visible points
             vis_points = _vtk.vtkSelectVisiblePoints()
-            vis_points.SetInputData(vtkpoints)
+            if algo is not None:
+                vis_points.SetInputConnection(algo.GetOutputPort())
+            else:
+                vis_points.SetInputData(points)
             vis_points.SetRenderer(self.renderer)
             vis_points.SetTolerance(tolerance)
 
@@ -4769,7 +4785,7 @@ class BasePlotter(PickingHelper, WidgetHelper):
         # add points
         if show_points:
             self.add_mesh(
-                vtkpoints,
+                algo or points,
                 color=point_color,
                 point_size=point_size,
                 name=f'{name}-points',

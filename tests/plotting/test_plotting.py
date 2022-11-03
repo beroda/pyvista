@@ -3152,3 +3152,22 @@ def test_plot_algorithm_scalars():
     pl = pyvista.Plotter()
     pl.add_mesh(algo)
     pl.show()
+
+
+def test_algorithm_add_mesh_methods():
+    algo = vtk.vtkRTAnalyticSource()
+
+    pl = pyvista.Plotter()
+    pl.add_points(algo)
+    pl.show()
+
+    algo = vtk.vtkConeSource()
+    elev = vtk.vtkElevationFilter()
+    elev.SetInputConnection(algo.GetOutputPort())
+    elev.SetLowPoint(0, 0, -1)
+    elev.SetHighPoint(0, 0, 1)
+
+    pl = pyvista.Plotter()
+    pl.add_point_labels(elev, 'Elevation', always_visible=False)
+    # pl.add_slider_widget(lambda x: algo.SetResolution(int(x)), [3, 10])
+    pl.show()
