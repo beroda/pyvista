@@ -4705,6 +4705,10 @@ class BasePlotter(PickingHelper, WidgetHelper):
             raise TypeError(f'Points type not usable: {type(points)}')
         points, algo = algorithm_to_mesh_handler(points)
         if algo is not None:
+            if not _vtk.VTK91:
+                raise RuntimeError(
+                    'To use vtkAlgorithms with `add_point_labels` requires VTK 9.1 or later.'
+                )
             # Extract points filter
             pc_algo = _vtk.vtkConvertToPointCloud()
             pc_algo.SetInputConnection(algo.GetOutputPort())

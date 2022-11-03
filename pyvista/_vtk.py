@@ -17,8 +17,10 @@ try:
     from vtkmodules.vtkCommonCore import vtkVersion
 
     VTK9 = vtkVersion().GetVTKMajorVersion() >= 9
+    VTK91 = VTK9 and vtkVersion().GetVTKMinorVersion() >= 1
 except ImportError:  # pragma: no cover
     VTK9 = False
+    VTK91 = False
 
 # for charts
 _has_vtkRenderingContextOpenGL2 = False
@@ -328,11 +330,7 @@ if VTK9:
     except ModuleNotFoundError:  # pragma: no cover
         # `vtkmodules.vtkFiltersParallelDIY2` is unavailable in some versions of `vtk` from conda-forge
         pass
-    from vtkmodules.vtkFiltersPoints import (
-        vtkConvertToPointCloud,
-        vtkGaussianKernel,
-        vtkPointInterpolator,
-    )
+    from vtkmodules.vtkFiltersPoints import vtkGaussianKernel, vtkPointInterpolator
     from vtkmodules.vtkFiltersSources import (
         vtkArcSource,
         vtkArrowSource,
@@ -546,6 +544,10 @@ if VTK9:
         vtkSmartVolumeMapper,
     )
     from vtkmodules.vtkViewsContext2D import vtkContextInteractorStyle
+
+    # 9.1+ imports
+    if VTK91:
+        from vtkmodules.vtkFiltersPoints import vtkConvertToPointCloud
 
     # lazy import for some of the less used readers
     def lazy_vtkOBJExporter():
