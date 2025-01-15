@@ -10,7 +10,6 @@ import requests
 import pyvista as pv
 from pyvista import examples
 from pyvista.examples import downloads
-from tests.conftest import flaky_test
 from tests.examples.test_dataset_loader import DatasetLoaderTestCase
 from tests.examples.test_dataset_loader import _generate_dataset_loader_test_cases_from_module
 from tests.examples.test_dataset_loader import _get_mismatch_fail_msg
@@ -39,7 +38,7 @@ def _is_valid_url(url):
         return True
 
 
-@flaky_test(exceptions=(AttributeError,))
+@pytest.mark.flaky(3, only_rerun='AttributeError')
 def test_dataset_loader_source_url_blob(test_case: DatasetLoaderTestCase):
     try:
         # Skip test if not loadable

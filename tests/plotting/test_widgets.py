@@ -14,7 +14,6 @@ from pyvista.plotting import widgets
 from pyvista.plotting.affine_widget import DARK_YELLOW
 from pyvista.plotting.affine_widget import get_angle
 from pyvista.plotting.affine_widget import ray_plane_intersection
-from tests.conftest import flaky_test
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
@@ -544,7 +543,7 @@ def test_get_angle():
     assert np.isclose(result_angle, expected_angle, atol=1e-8)
 
 
-@flaky_test
+@pytest.mark.flaky(3, only_rerun='AssertionError')
 def test_affine_widget(sphere):
     interact_calls = []
     release_calls = []
