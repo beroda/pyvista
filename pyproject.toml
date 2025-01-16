@@ -197,6 +197,7 @@ omit = [
 ]
 
 [tool.pytest.ini_options]
+addopts = ["-raR"]
 doctest_optionflags = 'NUMBER ELLIPSIS'
 filterwarnings = [
   'error::pyvista.PyVistaDeprecationWarning',
