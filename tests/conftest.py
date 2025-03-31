@@ -360,16 +360,31 @@ def pytest_runtest_setup(item: pytest.Item):
                     default=None,
                     annotation=Optional[tuple[int]],
                 ),
+                Parameter(
+                    'reason',
+                    kind=Parameter.KEYWORD_ONLY,
+                    default=None,
+                    annotation=Optional[str],
+                ),
             ]
         )
         _min, _max, bounds = _get_min_max_vtk_version(item_mark=item_mark, sig=sig)
+        _min = (_min,) if isinstance(_min, int) else _min
+        _max = (_max,) if isinstance(_max, int) else _max
+
         curr_version = pyvista.vtk_version_info
 
         if _max is None and curr_version < _min:
-            pytest.skip(reason=f'Test needs VTK version > {_min}, current is {curr_version}.')
+            reason = item_mark.kwargs.get(
+                'reason', f'Test needs VTK version > {_min}, current is {curr_version}.'
+            )
+            pytest.skip(reason=reason)
 
         if _min is None and curr_version > _max:
-            pytest.skip(reason=f'Test needs VTK version < {_max}, current is {curr_version}.')
+            reason = item_mark.kwargs.get(
+                'reason', f'Test needs VTK version < {_max}, current is {curr_version}.'
+            )
+            pytest.skip(reason=reason)
 
         if _min is not None and _max is not None:
             if _min > _max:
@@ -377,9 +392,11 @@ def pytest_runtest_setup(item: pytest.Item):
                 raise ValueError(msg)
 
             if curr_version < _min or curr_version > _max:
-                pytest.skip(
-                    reason=f'Test needs {_min} < VTK version < {_max}, current is {curr_version}.'
+                reason = item_mark.kwargs.get(
+                    'reason',
+                    f'Test needs {_min} < VTK version < {_max}, current is {curr_version}.',
                 )
+                pytest.skip(reason=reason)
 
     if item_mark := item.get_closest_marker('skip_egl'):
         sig = Signature(
