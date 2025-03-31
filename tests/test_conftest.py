@@ -5,7 +5,10 @@ import re
 from typing import TYPE_CHECKING
 
 import pytest
+from pytest_cases import case
+from pytest_cases import filters as ft
 from pytest_cases import parametrize
+from pytest_cases import parametrize_with_cases
 
 import pyvista
 
@@ -172,64 +175,138 @@ def test_downloads_mark(
     assert 'test_downloads' in (report.passed if cml else report.skipped)
 
 
-@pytest.mark.parametrize('greater', [True, False])
-def test_needs_vtk_version_tuple(
-    pytester: pytest.Pytester,
-    monkeypatch: pytest.MonkeyPatch,
-    greater: bool,
-):
-    tests = """
-    import pytest
+class Cases_needs_vtk:
+    @case
+    @parametrize(greater=[True, False])
+    def case_tuple_args_only(self, greater: bool, monkeypatch: pytest.MonkeyPatch):
+        """Test when using the args, with both tuple and variadic *args and the kwargs"""
 
-    @pytest.mark.needs_vtk_version(9,1)
-    def test_greater_9_1():
-        ...
+        tests = """
+        import pytest
 
-    @pytest.mark.needs_vtk_version((9,1))
-    def test_greater_9_1_tuple():
-        ...
+        @pytest.mark.needs_vtk_version(9, 1)
+        def test_greater_9_1(): ...
 
-    """
+        @pytest.mark.needs_vtk_version((9, 1))
+        def test_greater_9_1_tuple(): ...
 
-    value = (8, 2) if greater else (9, 2)
-    monkeypatch.setattr(pyvista, 'vtk_version_info', value)
+        @pytest.mark.needs_vtk_version((9, 1, 0))
+        def test_greater_9_1_tuple_2(): ...
 
+        @pytest.mark.needs_vtk_version(min=(9, 1))
+        def test_greater_9_1_kwargs(): ...
+        """
+
+        value = (8, 2) if greater else (9, 2)
+        monkeypatch.setattr(pyvista, 'vtk_version_info', value)
+
+        return tests, dict(passed=0 if greater else 4, skipped=4 if greater else 0)
+
+    @case
+    @parametrize(lower=[True, False])
+    def case_tuple_max_kwargs(self, lower: bool, monkeypatch: pytest.MonkeyPatch):
+        """Test when using the max kwargs"""
+
+        tests = """
+        import pytest
+
+        @pytest.mark.needs_vtk_version(max=(9, 1))
+        def test_smaller_9_1(): ...
+
+        """
+
+        value = (8, 2) if lower else (9, 2)
+        monkeypatch.setattr(pyvista, 'vtk_version_info', value)
+
+        return tests, dict(passed=1 if lower else 0, skipped=0 if lower else 1)
+
+    @case
+    @parametrize(between=[True, False])
+    def case_tuple_min_max_kwargs(self, between: bool, monkeypatch: pytest.MonkeyPatch):
+        """Test when using the min and max kwargs"""
+
+        tests = """
+        import pytest
+
+        @pytest.mark.needs_vtk_version(min=(8, 2), max=(9, 1))
+        def test_between(): ...
+
+        @pytest.mark.needs_vtk_version((8, 2), max=(9, 1))
+        def test_between_tuple(): ...
+
+        @pytest.mark.needs_vtk_version(8, 2, max=(9, 1))
+        def test_between_variadic(): ...
+        """
+
+        value = (9, 0) if between else (9, 2)
+        monkeypatch.setattr(pyvista, 'vtk_version_info', value)
+
+        return tests, dict(passed=3 if between else 0, skipped=0 if between else 3)
+
+    @case(tags='raises')
+    def case_raises_signature(self):
+        """Test when not specifying any version, or using bad signature"""
+
+        tests = """
+        import pytest
+
+        @pytest.mark.needs_vtk_version
+        def test_1(): ...
+
+        @pytest.mark.needs_vtk_version(foo=1)
+        def test_2(): ...
+
+        """
+
+        return tests, dict(errors=2)
+
+    @case(tags='raises')
+    def case_raises_both_args_min_kwargs(self):
+        """Test when specifying both args and min kwargs"""
+
+        tests = """
+        import pytest
+
+        @pytest.mark.needs_vtk_version(9, 2, 1, min=(8, 1))
+        def test_1(): ...
+
+        @pytest.mark.needs_vtk_version((9, 2), min=(9, 1))
+        def test_2(): ...
+        """
+
+        return tests, dict(errors=2)
+
+    @case(tags='raises')
+    def case_min_greater_max(self):
+        """Test when specifying min > max"""
+
+        tests = """
+        import pytest
+
+        @pytest.mark.needs_vtk_version(9, 2, 1, max=(8, 1))
+        def test_1(): ...
+
+        @pytest.mark.needs_vtk_version((9, 2, 1), max=(8, 1))
+        def test_2(): ...
+        """
+
+        return tests, dict(errors=2)
+
+
+@parametrize_with_cases('tests, outcome', cases=Cases_needs_vtk, filter=~ft.has_tag('raises'))
+def test_needs_vtk_version(tests: str, outcome: dict, pytester: pytest.Pytester):
     p = pytester.makepyfile(tests)
     results = pytester.runpytest(p)
 
-    results.assert_outcomes(
-        passed=0 if greater else 2,
-        skipped=2 if greater else 0,
-    )
+    results.assert_outcomes(**outcome)
 
 
-@pytest.mark.parametrize('version', [(9, 0), (9, 2)])
-def test_needs_vtk_version(
-    pytester: pytest.Pytester,
-    monkeypatch: pytest.MonkeyPatch,
-    version: tuple[int],
-):
-    tests = """
-    import pytest
-
-    @pytest.mark.needs_vtk_version(9,1)
-    def test_greater_9_1():
-        ...
-
-    """
-
-    monkeypatch.setattr(pyvista, 'vtk_version_info', version)
-
+@parametrize_with_cases('tests, outcome', cases=Cases_needs_vtk, has_tag='raises')
+def test_needs_vtk_version_raises(tests: str, outcome: dict, pytester: pytest.Pytester):
     p = pytester.makepyfile(tests)
-    results = pytester.runpytest(p, '-ra')
+    results = pytester.runpytest(p)
 
-    results.assert_outcomes(
-        passed=1 if version == (9, 2) else 0,
-        skipped=0 if version == (9, 2) else 1,
-    )
-
-    if version == (9, 0):
-        results.stdout.re_match_lines([r'SKIPPED.*Test needs VTK 9.1 or newer'])
+    results.assert_outcomes(**outcome)
 
 
 @pytest.mark.skipif(os.name != 'nt', reason='Needs Windows platform to run')
