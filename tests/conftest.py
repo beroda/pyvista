@@ -312,6 +312,19 @@ def _get_min_max_vtk_version(
 ) -> tuple[tuple[int] | None, tuple[int] | None, BoundArguments]:
     bounds = _check_args_kwargs_marker(item_mark=item_mark, sig=sig)
 
+    def _pad_version(val: tuple[int] | None):
+        if val is None:
+            return val
+
+        if (l := len(val)) == (expected := 3):
+            return val
+
+        if l > expected:
+            msg = f'Version tuple incorrect length (needs <= {expected})'
+            raise ValueError(msg)
+
+        return val + (0,) * (expected - l)
+
     # Distinguish scenarios from positional arguments
     if (len(args := bounds.arguments['args']) > 0) and (bounds.arguments['min'] is not None):
         msg = f'Cannot specify both *args and `min` keyword argument to `{item_mark.name}` marker.'
@@ -319,7 +332,7 @@ def _get_min_max_vtk_version(
 
     if len(args) > 0:
         min_version = args[0] if len(args) == 1 and isinstance(args[0], tuple) else args
-        return min_version, bounds.arguments['max'], bounds
+        return _pad_version(min_version), _pad_version(bounds.arguments['max']), bounds
 
     _min = bounds.arguments['min']
     _max = bounds.arguments['max']
@@ -330,7 +343,7 @@ def _get_min_max_vtk_version(
         )
         raise ValueError(msg)
 
-    return bounds.arguments['min'], bounds.arguments['max'], bounds
+    return _pad_version(bounds.arguments['min']), _pad_version(bounds.arguments['max']), bounds
 
 
 def pytest_runtest_setup(item: pytest.Item):
@@ -376,11 +389,11 @@ def pytest_runtest_setup(item: pytest.Item):
 
         if _max is None and curr_version < _min:
             reason = item_mark.kwargs.get(
-                'reason', f'Test needs VTK version > {_min}, current is {curr_version}.'
+                'reason', f'Test needs VTK version >= {_min}, current is {curr_version}.'
             )
             pytest.skip(reason=reason)
 
-        if _min is None and curr_version > _max:
+        if _min is None and curr_version >= _max:
             reason = item_mark.kwargs.get(
                 'reason', f'Test needs VTK version < {_max}, current is {curr_version}.'
             )
@@ -391,10 +404,10 @@ def pytest_runtest_setup(item: pytest.Item):
                 msg = 'Cannot specify a minimum version greater than the maximum one.'
                 raise ValueError(msg)
 
-            if curr_version < _min or curr_version > _max:
+            if curr_version < _min or curr_version >= _max:
                 reason = item_mark.kwargs.get(
                     'reason',
-                    f'Test needs {_min} < VTK version < {_max}, current is {curr_version}.',
+                    f'Test needs {_min} <= VTK version < {_max}, current is {curr_version}.',
                 )
                 pytest.skip(reason=reason)
 
