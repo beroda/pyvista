@@ -598,11 +598,8 @@ def test_openfoamreader_arrays_time():
     assert reader.time_values == [0.0, 0.5, 1.0, 1.5, 2.0, 2.5]
 
 
+@pytest.mark.needs_vtk_version(9, 1, 0, reason='OpenFOAMReader GetTimeValue missing on vtk<9.1.0')
 def test_openfoamreader_active_time():
-    # vtk < 9.1.0 does not support
-    if pv.vtk_version_info < (9, 1, 0):
-        pytest.xfail('OpenFOAMReader GetTimeValue missing on vtk<9.1.0')
-
     reader = get_cavity_reader()
     assert reader.active_time_value == 0.0
     reader.set_active_time_point(1)
