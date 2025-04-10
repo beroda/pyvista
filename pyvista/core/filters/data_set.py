@@ -18,7 +18,6 @@ import numpy as np
 
 import pyvista
 from pyvista.core import _validation
-from pyvista.core._typing_core import NumpyArray
 import pyvista.core._vtk_core as _vtk
 from pyvista.core.errors import AmbiguousDataError
 from pyvista.core.errors import MissingDataError
@@ -45,6 +44,7 @@ if TYPE_CHECKING:
     from pyvista import MultiBlock
     from pyvista import PolyData
     from pyvista.core._typing_core import MatrixLike
+    from pyvista.core._typing_core import NumpyArray
     from pyvista.core._typing_core import VectorLike
     from pyvista.core._typing_core import _DataObjectType
     from pyvista.core._typing_core import _DataSetType
@@ -2084,7 +2084,7 @@ class DataSetFilters(DataObjectFilters):
                     msg = "`region_ids` must be specified when `extraction_mode='specified'`."
                     raise ValueError(msg)
                 else:
-                    region_ids = cast(NumpyArray[int], variable_input)
+                    region_ids = cast('NumpyArray[int]', variable_input)
             # this mode returns scalar data with shape that may not match
             # the number of cells/points, so we extract all and filter later
             # alg.SetExtractionModeToSpecifiedRegions()
@@ -2098,7 +2098,7 @@ class DataSetFilters(DataObjectFilters):
                     msg = "`cell_ids` must be specified when `extraction_mode='cell_seed'`."
                     raise ValueError(msg)
                 else:
-                    cell_ids = cast(NumpyArray[int], variable_input)
+                    cell_ids = cast('NumpyArray[int]', variable_input)
             alg.SetExtractionModeToCellSeededRegions()
             alg.InitializeSeedList()
             for i in _unravel_and_validate_ids(cell_ids):
@@ -2110,7 +2110,7 @@ class DataSetFilters(DataObjectFilters):
                     msg = "`point_ids` must be specified when `extraction_mode='point_seed'`."
                     raise ValueError(msg)
                 else:
-                    point_ids = cast(NumpyArray[int], variable_input)
+                    point_ids = cast('NumpyArray[int]', variable_input)
             alg.SetExtractionModeToPointSeededRegions()
             alg.InitializeSeedList()
             for i in _unravel_and_validate_ids(point_ids):
@@ -2122,7 +2122,7 @@ class DataSetFilters(DataObjectFilters):
                     msg = "`closest_point` must be specified when `extraction_mode='closest'`."
                     raise ValueError(msg)
                 else:
-                    closest_point = cast(NumpyArray[float], variable_input)
+                    closest_point = cast('NumpyArray[float]', variable_input)
             alg.SetExtractionModeToClosestPointRegion()
             alg.SetClosestPoint(*closest_point)
 
@@ -2890,7 +2890,7 @@ class DataSetFilters(DataObjectFilters):
             alg = point_source
 
         alg.Update()
-        input_source = cast(pyvista.DataSet, wrap(alg.GetOutput()))
+        input_source = cast('pyvista.DataSet', wrap(alg.GetOutput()))
 
         output = self.streamlines_from_source(
             input_source,
@@ -3035,7 +3035,7 @@ class DataSetFilters(DataObjectFilters):
             raise ValueError(msg)
         else:
             integration_direction_ = cast(
-                Literal['both', 'back', 'backward', 'forward'], integration_direction
+                'Literal["both", "back", "backward", "forward"]', integration_direction
             )
         if integrator_type not in [2, 4, 45]:
             msg = 'Integrator type must be one of `2`, `4`, or `45`.'
@@ -5343,6 +5343,11 @@ class DataSetFilters(DataObjectFilters):
             which :class:`~pyvista.CellType` it applies to as well as the metric's
             full, normal, and acceptable range of values.
 
+        .. deprecated:: 0.45
+
+            Use :meth:`~pyvista.DataObjectFilters.cell_quality` instead. Note that
+            this new filter does not include an array named ``'CellQuality'``.
+
         Parameters
         ----------
         quality_measure : str, default: 'scaled_jacobian'
@@ -5370,12 +5375,25 @@ class DataSetFilters(DataObjectFilters):
 
         >>> import pyvista as pv
         >>> sphere = pv.Sphere(theta_resolution=20, phi_resolution=20)
-        >>> cqual = sphere.compute_cell_quality('min_angle')
-        >>> cqual.plot(show_edges=True)
+        >>> cqual = sphere.compute_cell_quality('min_angle')  # doctest:+SKIP
+        >>> cqual.plot(show_edges=True)  # doctest:+SKIP
 
         See the :ref:`mesh_quality_example` for more examples using this filter.
 
         """
+        if pyvista.version_info >= (0, 48):  # pragma: no cover
+            msg = 'Convert this deprecation warning into an error.'
+            raise RuntimeError(msg)
+        if pyvista.version_info >= (0, 49):  # pragma: no cover
+            msg = 'Remove this filter.'
+            raise RuntimeError(msg)
+
+        msg = (
+            'This filter is deprecated. Use `cell_quality` instead. Note that this\n'
+            "new filter does not include an array named ``'CellQuality'`"
+        )
+        warnings.warn(msg, PyVistaDeprecationWarning)
+
         alg = _vtk.vtkCellQuality()
         possible_measure_setters = {
             'area': 'SetQualityMeasureToArea',
@@ -6220,7 +6238,7 @@ class DataSetFilters(DataObjectFilters):
 
         # Modify box
         for face in box:
-            face = cast(pyvista.PolyData, face)
+            face = cast('pyvista.PolyData', face)
             if box_style == 'outline':
                 face.copy_from(pyvista.lines_from_points(face.points))
             if oriented:
@@ -6233,8 +6251,8 @@ class DataSetFilters(DataObjectFilters):
                 axes = np.eye(3)
                 point = np.reshape(alg_output.bounds, (3, 2))[:, 0]  # point at min bounds
             else:
-                matrix = cast(NumpyArray[float], matrix)
-                inverse_matrix = cast(NumpyArray[float], inverse_matrix)
+                matrix = cast('NumpyArray[float]', matrix)
+                inverse_matrix = cast('NumpyArray[float]', inverse_matrix)
                 axes = matrix[:3, :3]  # principal axes
                 # We need to figure out which corner of the box to position the axes
                 # To do this we compare output axes to expected axes for all 8 corners
@@ -6649,7 +6667,7 @@ class DataSetFilters(DataObjectFilters):
         else:  # Use numpy
             # Get mapping from input ID to output ID
             arr = cast(
-                pyvista.pyvista_ndarray, get_array(self, scalars, preference=preference, err=True)
+                'pyvista.pyvista_ndarray', get_array(self, scalars, preference=preference, err=True)
             )
             label_numbers_in, label_sizes = np.unique(arr, return_counts=True)
             if sort:
@@ -6930,7 +6948,6 @@ class DataSetFilters(DataObjectFilters):
         import matplotlib.colors
 
         from pyvista.core._validation.validate import _validate_color_sequence
-        from pyvista.plotting._typing import ColorLike
         from pyvista.plotting.colors import get_cmap_safe
 
         def _local_validate_color_sequence(seq: ColorLike | Sequence[ColorLike]) -> Sequence[Color]:
@@ -6982,7 +6999,7 @@ class DataSetFilters(DataObjectFilters):
             if coloring_mode is not None:
                 msg = 'Coloring mode cannot be set when a color dictionary is specified.'
                 raise TypeError(msg)
-            colors_ = _local_validate_color_sequence(cast(list[ColorLike], list(colors.values())))
+            colors_ = _local_validate_color_sequence(cast('list[ColorLike]', list(colors.values())))
             color_rgb_sequence = [getattr(c, color_type) for c in colors_]
             items = zip(colors.keys(), color_rgb_sequence)
 
@@ -7001,7 +7018,7 @@ class DataSetFilters(DataObjectFilters):
                         msg = f"Colormap '{colors}' must be a ListedColormap, got {cmap.__class__.__name__} instead."
                         raise ValueError(msg)
                     # Avoid unnecessary conversion and set color sequence directly in float cases
-                    cmap_colors = cast(list[list[float]], cmap.colors)
+                    cmap_colors = cast('list[list[float]]', cmap.colors)
                     if color_type == 'float_rgb':
                         color_rgb_sequence = cmap_colors
                         _is_rgb_sequence = True
