@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 from pytest_cases import parametrize
 
-import pyvista
+import pyvista as pv
 from pyvista import CellType
 from pyvista.examples import cells
 
@@ -16,19 +16,19 @@ cell_example_functions = [
 ]
 
 
-@pytest.mark.needs_vtk_version(9, 1, 0)
 @parametrize('cell_example', cell_example_functions)
 def test_area_and_volume(cell_example):
     mesh = cell_example()
-    assert isinstance(mesh, pyvista.UnstructuredGrid)
+    assert isinstance(mesh, pv.UnstructuredGrid)
     assert mesh.n_cells == 1
 
     if mesh.celltypes[0] in [
-        pyvista.CellType.BIQUADRATIC_QUADRATIC_HEXAHEDRON,
-        pyvista.CellType.TRIQUADRATIC_HEXAHEDRON,
+        CellType.QUADRATIC_WEDGE,
+        CellType.BIQUADRATIC_QUADRATIC_HEXAHEDRON,
+        CellType.TRIQUADRATIC_HEXAHEDRON,
     ]:
         pytest.xfail(
-            'Volume should be positive but returns zero, see https://gitlab.kitware.com/vtk/vtk/-/issues/19639'
+            'Volume should be positive but returns zero or negative, see https://gitlab.kitware.com/vtk/vtk/-/issues/19639'
         )
 
     # Test area and volume
@@ -44,6 +44,14 @@ def test_area_and_volume(cell_example):
     else:
         assert np.isclose(area, 0.0)
         assert np.isclose(volume, 0.0)
+
+
+@pytest.mark.needs_vtk_version(9, 5, 0, reason='vtkCellValidator output differs')
+@parametrize('cell_example', cell_example_functions)
+def test_cell_is_valid(cell_example):
+    mesh = cell_example()
+    invalid_fields = mesh.validate_mesh().invalid_fields
+    assert not invalid_fields
 
 
 def test_empty():
@@ -103,7 +111,7 @@ def test_polygon():
     assert grid.n_points == 6
 
 
-def test_Quadrilateral():
+def test_quadrilateral():
     grid = cells.Quadrilateral()
     assert grid.celltypes[0] == CellType.QUAD
     assert grid.n_cells == 1
@@ -241,7 +249,6 @@ def test_triquadratic_hexahedron():
     assert grid.n_points == 27
 
 
-@pytest.mark.needs_vtk_version(9, 1, 0)
 def test_triquadratic_pyramid():
     grid = cells.TriQuadraticPyramid()
     assert grid.celltypes[0] == CellType.TRIQUADRATIC_PYRAMID

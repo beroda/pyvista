@@ -19,10 +19,16 @@ Object Conversions or Wrapping
    array_from_vtkmatrix
    cubemap
    cubemap_from_filenames
+   from_meshio
+   from_trimesh
    image_to_texture
+   is_meshio_mesh
+   is_trimesh_mesh
    is_pyvista_dataset
    numpy_to_texture
    pyvista_ndarray
+   to_meshio
+   to_trimesh
    vtkmatrix_from_array
    wrap
 
@@ -50,9 +56,7 @@ File IO
 .. autosummary::
    :toctree: _autosummary
 
-   from_meshio
    get_ext
-   is_meshio_mesh
    read
    read_exodus
    read_grdecl
@@ -60,9 +64,6 @@ File IO
    read_texture
    save_meshio
    set_pickle_format
-   set_vtkwriter_mode
-   to_meshio
-
 
 Mesh Creation
 ~~~~~~~~~~~~~
@@ -112,12 +113,22 @@ Colors
    Color
    ColorLike
 
-Named colors supported by the :class:`~pyvista.Color` class:
+Named colors supported by :class:`~pyvista.Color`, :class:`~pyvista.Plotter`,
+and other plotting-related methods:
 
 .. toctree::
    :maxdepth: 3
 
    /api/utilities/named_colors
+
+
+Named colormaps supported by :class:`~pyvista.LookupTable`, :class:`~pyvista.Plotter`,
+and other plotting-related methods:
+
+.. toctree::
+   :maxdepth: 3
+
+   /api/utilities/named_colormaps
 
 Miscellaneous
 ~~~~~~~~~~~~~
@@ -125,6 +136,8 @@ Miscellaneous
 .. autosummary::
    :toctree: _autosummary
 
+   set_new_attribute
+   allow_new_attributes
    start_xvfb
    Report
    vtk_verbosity
@@ -136,8 +149,8 @@ The PyVista library provides a way of getting the version installed in your
 environment.
 
 >>> # Output the version of PyVista.
->>> import pyvista
->>> pyvista.version_info
+>>> import pyvista as pv
+>>> pv.version_info
 (0, 44, 0)
 
 VTK Version Information
@@ -146,10 +159,10 @@ The PyVista library is heavily dependent on VTK and provides an easy
 way of getting the version of VTK in your environment.
 
 >>> # Output the version of VTK.
->>> import pyvista
->>> pyvista.vtk_version_info
+>>> import pyvista as pv
+>>> pv.vtk_version_info
 VTKVersionInfo(major=9, minor=1, micro=0)
 
 >>> # Get the major version of VTK
->>> pyvista.vtk_version_info.major
+>>> pv.vtk_version_info.major
 9
